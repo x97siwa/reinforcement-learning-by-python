@@ -1,6 +1,7 @@
 import gym
 import gym.envs.toy_text.frozen_lake as fl
 from enum import IntEnum
+import numpy as np
 
 """
 The implementation depends on this page:
@@ -39,24 +40,43 @@ class FrozenLake:
     def __init__(self, map_name='4x4', is_slippery=False):
         self.map = fl.MAPS[map_name]
         self.env = gym.make(_ENVS[(map_name, is_slippery)])
-        self.state2pos = {}
+        self.rewrad_func = lambda pos: int(self.map[pos[0]][pos[1]]=='G')
         
-        nrow = self.env.unwrapped.nrow
-        ncol = self.env.unwrapped.ncol
-        for i in range(nrow):
-            for j in range(ncol):
-                self.state2pos[i*nrow+j] = (i, j)
+        def transition_func(pos, action):
+            p = np.zeros((len(self.map), len(self.map)))
+            p[self._perform(pos, action)] = 1/3
+            if is_slippery:
+                for i in [(action.value-1)%4, (action.value+1)%4]:
+                    p[self._perform(pos, Action(i))] += 1/3
+            return p
 
+        self.transition_func = transition_func
 
+    
     def reset(self):
-        return self.state2pos[self.env.reset()]
+        return self._state2pos(self.env.reset())
 
     
     def step(self, action):
         state, reward, done, info = self.env.step(action)
-        pos = self.state2pos[state]
+        pos = self._state2pos(state)
         return pos, reward, done, info
 
     
     def close(self):
         self.env.close()
+
+    
+    def _state2pos(self, s):
+        return divmod(s, len(self.map))
+
+        
+    def _perform(self, pos, action):
+        if action==Action.UP:
+            return (max(0, pos[0]-1), pos[1])
+        elif self==Action.DOWN:
+            return (min(pos[0]+1, len(self.map)-1), pos[1])
+        elif self==Action.LEFT:
+            return (pos[0], max(0, pos[1]-1))
+        elif self==Action.RIGHT:
+            return (pos[0], min(pos[1]+1, len(self.map)-1))
