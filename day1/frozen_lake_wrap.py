@@ -40,11 +40,11 @@ class FrozenLake:
     def __init__(self, map_name='4x4', is_slippery=False):
         self.map = fl.MAPS[map_name]
         self.env = gym.make(_ENVS[(map_name, is_slippery)])
-        self.rewrad_func = lambda pos: int(self.map[pos[0]][pos[1]]=='G')
+        self.reward_func = lambda pos: int(self.map[pos[0]][pos[1]]=='G')
         
         def transition_func(pos, action):
             p = np.zeros((len(self.map), len(self.map)))
-            p[self._perform(pos, action)] = 1/3
+            p[self._perform(pos, action)] = 1/3 if is_slippery else 1
             if is_slippery:
                 for i in [(action.value-1)%4, (action.value+1)%4]:
                     p[self._perform(pos, Action(i))] += 1/3
@@ -74,9 +74,9 @@ class FrozenLake:
     def _perform(self, pos, action):
         if action==Action.UP:
             return (max(0, pos[0]-1), pos[1])
-        elif self==Action.DOWN:
+        elif action==Action.DOWN:
             return (min(pos[0]+1, len(self.map)-1), pos[1])
-        elif self==Action.LEFT:
+        elif action==Action.LEFT:
             return (pos[0], max(0, pos[1]-1))
-        elif self==Action.RIGHT:
+        elif action==Action.RIGHT:
             return (pos[0], min(pos[1]+1, len(self.map)-1))
